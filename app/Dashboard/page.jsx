@@ -266,7 +266,7 @@ export default function Dashboard({ products, loading }) {
           <button
             className="flex flex-col items-center p-4 bg-blue-50
            hover:bg-blue-100 rounded-lg transition-colors"
-            onClick={() => router.push("/Dashboard/AddProductForm")}
+            onClick={() => router.push("/Dashboard")}
           >
             <svg
               className="w-8 h-8 text-blue-600 mb-2"

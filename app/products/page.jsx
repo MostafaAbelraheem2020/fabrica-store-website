@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import ProductsList from "../_components/content/productesList";
 import ProductsGridSkeleton from "../_components/content/productsListSkeleton";
 
