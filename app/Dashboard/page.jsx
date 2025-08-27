@@ -260,7 +260,7 @@ export default function Dashboard({ products, loading }) {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+      {/* <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
         <h2 className="text-xl font-bold text-gray-800 mb-4">إجراءات سريعة</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <button
@@ -343,7 +343,7 @@ export default function Dashboard({ products, loading }) {
             </span>
           </button>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }
