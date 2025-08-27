@@ -1,0 +1,147 @@
+ استراتيجية لجلب البيانات وادارة الكاش  
+
+
+جلب بيانات المنتجات في Server Layout 
+
+React Query لإدارة الكاش وعرض البيانات فورًا بدون إعادة طلبات
+
+Prefetch عند الـ Hover للانتقال  الفوري لصفحة التفاصيل
+
+استخدام initialData بحيث صفحة التفاصيل تعرض المنتج من الكاش لو موجود
+
+Fallback Fetch في حالة الدخول المباشر لصفحة المنتج بدون زيارة القائمة
+
+
+
+
+🔹 lib/products.js
+
+
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { db } from "./firebase";
+
+export async function fetchProducts() {
+  const snapshot = await getDocs(collection(db, "products"));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+export async function fetchProductById(id) {
+  const ref = doc(db, "products", id);
+  const snapshot = await getDoc(ref);
+  if (!snapshot.exists()) throw new Error("Product not found");
+  return { id: snapshot.id, ...snapshot.data() };
+}
+🔹 app/products/page.jsx (SSR + Hydration)
+jsx
+
+=============================================================================
+
+import { fetchProducts } from "@/lib/products";
+import HydrateProducts from "@/components/HydrateProducts";
+import ProductsList from "./ProductsList";
+import { dehydrate, QueryClient } from "@tanstack/react-query";
+
+export default async function ProductsPage() {
+  const queryClient = new QueryClient();
+
+  // SSR: جلب المنتجات من Firestore
+  await queryClient.prefetchQuery({
+    queryKey: ["products"],
+    queryFn: fetchProducts
+  });
+
+  const dehydratedState = dehydrate(queryClient);
+
+  return (
+    <HydrateProducts state={dehydratedState}>
+      <ProductsList />
+    </HydrateProducts>
+  );
+}
+🔹 app/products/ProductsList.jsx (Prefetch)
+jsx
+
+
+==========================================================================
+
+"use client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { fetchProducts, fetchProductById } from "@/lib/products";
+
+export default function ProductsList() {
+  const queryClient = useQueryClient();
+  const { data: products } = useQuery({
+    queryKey: ["products"],
+    queryFn: fetchProducts,
+    staleTime: 1000 * 60 * 5
+  });
+
+  const handlePrefetch = (id) => {
+    queryClient.prefetchQuery({
+      queryKey: ["product", id],
+      queryFn: () => fetchProductById(id),
+      staleTime: 1000 * 60 * 5
+    });
+  };
+
+  return (
+    <ul className="grid grid-cols-3 gap-4">
+      {products?.map(product => (
+        <li key={product.id} className="border p-4">
+          <Link
+            href={`/products/${product.id}`}
+            onMouseEnter={() => handlePrefetch(product.id)}
+          >
+            <h2>{product.name}</h2>
+            <p>{product.price} EGP</p>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+🔹 app/products/[id]/page.jsx (تفاصيل المنتج)
+jsx
+
+============================================================================
+
+"use client";
+import { useQuery } from "@tanstack/react-query";
+import { fetchProductById } from "@/lib/products";
+
+export default function ProductDetails({ params }) {
+  const { id } = params;
+
+  const { data: product, isLoading } = useQuery({
+    queryKey: ["product", id],
+    queryFn: () => fetchProductById(id),
+    staleTime: 1000 * 60 * 5
+  });
+
+  if (isLoading) return <p>Loading...</p>;
+
+  return (
+    <div>
+      <h1>{product.name}</h1>
+      <p>Price: {product.price} EGP</p>
+      <p>{product.description}</p>
+    </div>
+  );
+}
+🔹 components/HydrateProducts.jsx
+jsx
+
+
+==============================================================================
+
+"use client";
+import { Hydrate } from "@tanstack/react-query";
+
+export default function HydrateProducts({ state, children }) {
+  return <Hydrate state={state}>{children}</Hydrate>;
+}
+
+
+============================================================================
